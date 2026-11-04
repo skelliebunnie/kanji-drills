@@ -1,0 +1,192 @@
+// Built with the help of Claude.ai, using the JMdict examples data set
+
+const index = { forms: new Map(), chars: new Map(), glosses: new Map() };
+const isKanji = ch => /\p{Script=Han}/u.test(ch);
+
+function addTo(map, key, entry) {
+  if (!map.has(key)) map.set(key, []);
+  map.get(key).push(entry);
+}
+
+function buildIndex(words) {
+  for (const w of words) {
+    for (const k of w.kanji) {
+      addTo(index.forms, k.text, w);                 // 食べる
+      for (const ch of new Set(k.text))              // 食, 
+        if (isKanji(ch)) addTo(index.chars, ch, w);
+    }
+    for (const k of w.kana) addTo(index.forms, k.text, w);   // たべる
+    for (const s of w.sense)
+      for (const g of s.gloss)
+        for (const tok of g.text.toLowerCase().split(/\W+/))
+          if (tok) addTo(index.glosses, tok, w);     // "eat"
+  }
+}
+
+const hasJapanese = q => /[\u3040-\u30ff\u4e00-\u9fff]/.test(q);
+
+function search(query, limit = 50) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const scored = new Map();
+  const bump = (w, s) => scored.set(w, Math.max(scored.get(w) ?? 0, s));
+
+  if (hasJapanese(q)) {
+    (index.forms.get(q) ?? []).forEach(w => bump(w, 100));
+    for (const [form, ws] of index.forms)
+      if (form.startsWith(q)) ws.forEach(w => bump(w, 50));
+    if ([...q].length === 1)                          // single kanji lookup
+      (index.chars.get(q) ?? []).forEach(w => bump(w, 25));
+  } else {
+    (index.glosses.get(q) ?? []).forEach(w => bump(w, 100));
+    for (const [tok, ws] of index.glosses)
+      if (tok.startsWith(q)) ws.forEach(w => bump(w, 40));
+  }
+
+  const isCommon = w => w.kanji.some(k => k.common) || w.kana.some(k => k.common);
+  return [...scored]
+    .map(([w, s]) => [w, s + (isCommon(w) ? 10 : 0)])
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([w]) => w);
+}
+
+const $ = id => document.getElementById(id);
+const input = $('query'), statusEl = $('status');
+const byId = new Map();
+let collection = loadCollection();
+
+function loadCollection() {
+  try { return new Set(JSON.parse(localStorage.getItem('collection') ?? '[]')); }
+  catch { return new Set(); }
+}
+function saveCollection() {
+  try { localStorage.setItem('collection', JSON.stringify([...collection])); } catch {}
+}
+
+// build one result row using textContent (no innerHTML, so no escaping issues)
+function entryRow(w, { removable = false } = {}) {
+  const row = document.createElement('div');
+  row.className = 'entry';
+  row.dataset.id = w.id;
+  
+  if(removable || collection.has(w.id)) {
+    row.classList.add("remove");
+    row.dataset.action = "remove";
+  } else {
+    row.classList.add("add");
+    row.dataset.action = "add";
+  }
+  
+  const rowHeader = document.createElement("header");
+  rowHeader.className = "entry-header";
+
+  const head = document.createElement('span');
+  head.className = 'headword';
+  head.textContent = w.kanji[0]?.text ?? w.kana[0].text;
+  head.dataset.id = w.id;
+  rowHeader.append(head);
+
+  if (w.kanji.length) {
+    const r = document.createElement('span');
+    r.className = 'reading';
+    r.textContent = w.kana[0].text;
+    rowHeader.append(r);
+  }
+  if (w.kanji.some(k => k.common) || w.kana.some(k => k.common)) {
+    const t = document.createElement('span');
+    t.className = 'tag';
+    t.textContent = 'common';
+    rowHeader.append(t);
+  }
+
+  const gloss = document.createElement('p');
+  gloss.className = 'gloss';
+  gloss.textContent = w.sense.slice(0, 3)
+    .map(s => s.gloss.map(g => g.text).join('; '))
+    .join(' / ');
+  
+    
+  row.append(rowHeader, gloss);
+  return row;
+}
+
+function drillRow(w, reps = 4) {
+  const headword = w.kanji[0]?.text ?? w.kana[0].text;
+  console.log(headword);
+  let blocks = headword.length * reps;
+  
+  const drillRow = document.createElement('div');
+  drillRow.className = "drill-row";
+  for(let i = 0; i < blocks; i++) {
+    const block = document.createElement('div');
+    block.className = "kanji-block";
+    if(i < headword.length) {
+      block.classList.add("kanji-character");
+      block.textContent = headword.charAt(i);
+    }
+    drillRow.append(block);
+  }
+  
+  return drillRow;
+}
+
+function renderResults(list) {
+  $('results').replaceChildren(...list.map(w => entryRow(w, false)));
+  statusEl.textContent = list.length ? `${list.length} result(s)` : (input.value.trim() ? 'No matches' : '');
+}
+
+function renderCollection() {
+  const words = [...collection].map(id => byId.get(id)).filter(Boolean);
+  $('collection').replaceChildren(...words.map(w => entryRow(w, { removable: true })));
+  $('count').textContent = words.length;
+}
+
+function renderDrillRows() {
+  const words = [...collection].map(id => byId.get(id)).filter(Boolean);
+  $('sheet').replaceChildren(...words.map(w => drillRow(w)));
+}
+
+// one listener per container instead of one per button
+document.addEventListener('click', e => {
+  console.log(e.target.closest('.entry[data-action]'));
+  const btn = e.target.closest('.entry[data-action]');
+  if (!btn) return;
+  if (btn.dataset.action === 'add') collection.add(btn.dataset.id);
+  else collection.delete(btn.dataset.id);
+  saveCollection();
+  renderCollection();
+  renderDrillRows();
+  renderResults(search(input.value));   // refresh Add/Added states
+});
+
+$('search-form').addEventListener('submit', e => e.preventDefault());
+
+// options event listeners
+
+
+let timer;
+input.addEventListener('input', () => {
+  clearTimeout(timer);
+  timer = setTimeout(() => renderResults(search(input.value)), 150);
+});
+
+// boot
+fetch('/src/data/words.json')
+  .then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status} for ${r.url}`);
+    return r.json();
+  })
+  .then(words => {
+    for (const w of words) byId.set(w.id, w);
+    buildIndex(words);
+    input.disabled = false;
+    input.focus();
+    statusEl.textContent = `${words.length.toLocaleString()} entries loaded`;
+    renderCollection();
+    renderDrillRows();
+  })
+  .catch(err => {
+    statusEl.textContent = `Failed to load: ${err.message}`;
+    console.error(err);
+  });

@@ -1,0 +1,58 @@
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Kanji Drill Sheet Generator</title>
+	
+	<link rel="stylesheet" href="/src/styles/reset.css">
+	<link rel="stylesheet" href="/src/styles/layout.css">
+	<link rel="stylesheet" href="/src/styles/general.css">
+</head>
+<body>
+	<div class="page-wrapper">
+		<header class="site-header"><h1>Kanji Drill Sheet Generator</h1></header>
+		<div class="options-wrapper">
+			<form id="options">
+				<fieldset>
+					<legend>How many reps?</legend>
+					<small>Min = 1, max = 16</small>
+					<input type="number" id="reps" placeholder="4" value="4" min="1" max="16">
+				</fieldset>
+				<fieldset>
+					<legend>Only Kanji?</legend>
+					<input type="checkbox" id="kanji-only">
+				</fieldset>
+				<fieldset>
+					<legend>Stroke Order Font?</legend>
+					<input type="checkbox" id="kanji-only">
+				</fieldset>
+			</form>
+		</div>
+		<main class="site-content">
+			<div id="sheet">
+				
+			</div>
+		</main>
+		
+		<aside class="site-sidebar">
+			<div class="collection-container">
+				<h2>Collection (<span id="count">0</span>)</h2>
+				<div id="collection"></div>
+			</div>
+			<div class="search">
+				<form role="search" id="search-form">
+					<input type="search" id="query" placeholder="食べる、たべる、食、or &quot;eat&quot;" autocomplete="off" disabled>
+				</form>
+				<div id="status">Loading...</div>
+				<div id="results"></div>
+			</div>
+		</aside>
+		
+		<footer class="site-footer">
+			<p>This is for footer stuff.</p>
+		</footer>
+	</div>
+	
+	<script src="./src/scripts/app.js"></script>
+</body>
+</html>
