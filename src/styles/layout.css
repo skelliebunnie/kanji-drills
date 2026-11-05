@@ -3,9 +3,17 @@ body {
 }
 
 .page-wrapper {
-	background-color: lemonchiffon;
+	background-color: yellowgreen;
 	min-height: 100vh;
 	display: grid;
+	grid-template-columns: 1fr;
+	grid-template-rows: auto;
+	grid-template-areas:
+	"siteHeader"
+	"options"
+	"aside"
+	"main"
+	"footer";
 		
 		& > header,
 		& > .options-wrapper,
@@ -22,6 +30,7 @@ body {
 
 .page-wrapper > .options-wrapper {
 	grid-area: options;
+	background-color: lemonchiffon;
 }
 
 .page-wrapper > main { 
@@ -41,7 +50,7 @@ body {
 		grid-template-rows: min-content min-content auto min-content;
 		grid-template-areas: 
 			"siteHeader siteHeader siteHeader"
-			"options options options"
+			"options options aside"
 			"main main aside"
 			"footer footer footer";
 	}

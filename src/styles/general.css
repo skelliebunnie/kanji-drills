@@ -7,6 +7,11 @@
 
 body {
 	font-family: 'Noto Sans', sans-serif;
+
+	&.stroke-order .kanji-character {
+		font-family: "KanjiStrokeOrders";
+		font-size: 72px;
+	}
 }
 
 .strokeOrder {
@@ -38,7 +43,7 @@ form {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		flex-direction: column;
+		flex-direction: row;
 	}
 }
 
@@ -91,7 +96,7 @@ input[type="radio"] {
 		border-radius: 0.1em;
 		transform: scale(0);
 		transition: 120ms all ease-in-out;
-		box-shadow: inset 1em 1em var(--forest);
+		box-shadow: inset 1em 1em hotpink;
 	}
 	
 	&:hover::before {
@@ -164,13 +169,26 @@ input[type="radio"] {
 	
 	display: flex;
 	flex-wrap: wrap;
+	gap: 0.5rem;
 }
 
 /* sheet-specific styling */
-.drill-row {
+.drill-row-container {
+	.title {
+		border-bottom: 1px solid #ccc;
+		border-top: 3px solid #333;
+	}
+
+	.headword {
+		font-size: 2rem;
+	}
+}
+
+.block-container {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.25em;
+	padding-bottom: 1rem;
 }
 
 .kanji-block {
@@ -190,7 +208,8 @@ input[type="radio"] {
 @media print {
 	.site-header,
 	.site-sidebar,
-	.site-footer {
+	.site-footer,
+	#options {
 		display: none;
 	}
 	

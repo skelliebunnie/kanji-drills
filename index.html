@@ -12,20 +12,15 @@
 	<div class="page-wrapper">
 		<header class="site-header"><h1>Kanji Drill Sheet Generator</h1></header>
 		<div class="options-wrapper">
+			<h4>Options</h4>
 			<form id="options">
-				<fieldset>
-					<legend>How many reps?</legend>
-					<small>Min = 1, max = 16</small>
+				<label for="reps">Reps (1-16):
 					<input type="number" id="reps" placeholder="4" value="4" min="1" max="16">
-				</fieldset>
-				<fieldset>
-					<legend>Only Kanji?</legend>
-					<input type="checkbox" id="kanji-only">
-				</fieldset>
-				<fieldset>
-					<legend>Stroke Order Font?</legend>
-					<input type="checkbox" id="kanji-only">
-				</fieldset>
+				</label>
+				<label class="radio-check"><input type="checkbox" id="example-sentences" checked> Include Example sentences</label>
+				<label class="radio-check"><input type="checkbox" id="en-gloss" checked> Include English glosses</label>
+				<label class="radio-check"><input type="checkbox" id="kanji-only"> Kanji Only</label>
+				<label class="radio-check"><input type="checkbox" id="stroke-order"> Stroke Order</label>
 			</form>
 		</div>
 		<main class="site-content">
@@ -49,10 +44,11 @@
 		</aside>
 		
 		<footer class="site-footer">
-			<p>This is for footer stuff.</p>
+			<p>Built by SkellieBunnie, based on a generator by <a href="https://github.com/jensechu/kanji" target="_blank" rel="noopener noreferrer">jensechu/kanji</a></p>
 		</footer>
 	</div>
 	
+	<!-- <script src="./src/scripts/options.js"></script> -->
 	<script src="./src/scripts/app.js"></script>
 </body>
 </html>

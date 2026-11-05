@@ -1,5 +1,47 @@
 // Built with the help of Claude.ai, using the JMdict examples data set
 
+const optionsForm = document.getElementById('options');
+const repsInput = document.getElementById('reps');
+const kanjiOnlyInput = document.getElementById('kanji-only');
+const strokeOrderInput = document.getElementById('stroke-order');
+const exampleSentencesInput = document.getElementById('example-sentences');
+const englishGlossesInput = document.getElementById('en-gloss');
+
+let options = loadOptions() || {
+  exampleSentences: true,
+  englishGlosses: false,
+  reps: 4,
+  kanjiOnly: false,
+  strokeOrder: false
+};
+
+function loadOptions() {
+  try { 
+    let opts = JSON.parse(localStorage.getItem('options') ?? '{}');
+    return opts;
+  }
+  catch { return {}; }
+}
+function saveOptions() {
+  try { 
+    localStorage.setItem('options', JSON.stringify(options)); 
+  } catch (err) {
+    console.error('Failed to save options:', err);
+  }
+}
+
+function getOptions() {
+  let opt = {
+    reps: parseInt(repsInput.value) || 4,
+    kanjiOnly: kanjiOnlyInput.checked,
+    strokeOrder: strokeOrderInput.checked,
+    exampleSentences: exampleSentencesInput.checked,
+    englishGlosses: englishGlossesInput.checked
+  };
+  saveOptions();
+  return opt;
+}
+
 const index = { forms: new Map(), chars: new Map(), glosses: new Map() };
 const isKanji = ch => /\p{Script=Han}/u.test(ch);
 
@@ -111,13 +153,40 @@ function entryRow(w, { removable = false } = {}) {
   return row;
 }
 
-function drillRow(w, reps = 4) {
-  const headword = w.kanji[0]?.text ?? w.kana[0].text;
-  console.log(headword);
+function drillRow(w, reps = 4, kanjiOnly = false, exampleSentences = true, englishGlosses = false) {
+  let headword = w.kanji[0]?.text ?? w.kana[0].text;
+  console.log(w);
+  if(kanjiOnly) {
+    headword = headword.replace(/\P{Script=Han}/gu, '');
+  }
+
   let blocks = headword.length * reps;
   
-  const drillRow = document.createElement('div');
-  drillRow.className = "drill-row";
+  const drillRowContainer = document.createElement('div');
+  drillRowContainer.className = "drill-row-container";
+
+  // the header
+  const drillRowHeader = document.createElement('div');
+  drillRowHeader.className = "drill-row-header";
+  drillRowHeader.innerHTML = kanjiOnly ? `<div class="title"><span class="headword"><strong>${headword}</strong></span></div>` : `<div class="title"><span class="headword"><strong>${w.kanji[0]?.text ?? w.kana[0].text}</strong></span> <span class="reading">${w.kana[0].text}</span></div>`;
+  if(englishGlosses) {
+    drillRowHeader.innerHTML += ` | <span class="gloss">${w.sense.slice(0, 3).map(s => s.gloss.map(g => g.text).join('; ')).join(' / ')}</span>`;
+  }
+
+  if(exampleSentences && w.sense[0]?.examples?.length) {
+    const exampleSentence = w.sense[0].examples[0];
+    const sentenceEl = document.createElement('p');
+    sentenceEl.className = 'example-sentence';
+    sentenceEl.innerHTML = `<strong>例:</strong> ${exampleSentence.ja}`;
+    drillRowHeader.append(sentenceEl);
+  }
+
+
+  drillRowContainer.append(drillRowHeader);
+
+  const blockContainer = document.createElement('div');
+  blockContainer.className = "block-container";
+  // the blocks
   for(let i = 0; i < blocks; i++) {
     const block = document.createElement('div');
     block.className = "kanji-block";
@@ -125,11 +194,33 @@ function drillRow(w, reps = 4) {
       block.classList.add("kanji-character");
       block.textContent = headword.charAt(i);
     }
-    drillRow.append(block);
+    blockContainer.append(block);
   }
   
-  return drillRow;
+  drillRowContainer.append(blockContainer);
+  return drillRowContainer;
 }
+
+function updateOptionsUI() {
+  repsInput.value = options.reps;
+  kanjiOnlyInput.checked = options.kanjiOnly;
+  strokeOrderInput.checked = options.strokeOrder;
+
+  document.getElementById('reps').value = options.reps;
+  document.getElementById('kanji-only').checked = options.kanjiOnly;
+  document.getElementById('stroke-order').checked = options.strokeOrder; 
+  document.getElementById('example-sentences').checked = options.exampleSentences;
+  document.getElementById('en-gloss').checked = options.englishGlosses;
+
+  if(options.strokeOrder) {
+    document.body.classList.add('stroke-order');
+  } else {
+    document.body.classList.remove('stroke-order');
+  }
+
+  renderDrillRows(options.reps, options.kanjiOnly, options.exampleSentences, options.englishGlosses);
+}
+updateOptionsUI(); 
 
 function renderResults(list) {
   $('results').replaceChildren(...list.map(w => entryRow(w, false)));
@@ -142,21 +233,20 @@ function renderCollection() {
   $('count').textContent = words.length;
 }
 
-function renderDrillRows() {
+function renderDrillRows(reps = options.reps, kanjiOnly = options.kanjiOnly, exampleSentences = options.exampleSentences, englishGlosses = options.englishGlosses) {
   const words = [...collection].map(id => byId.get(id)).filter(Boolean);
-  $('sheet').replaceChildren(...words.map(w => drillRow(w)));
+  $('sheet').replaceChildren(...words.map(w => drillRow(w, reps, kanjiOnly, exampleSentences, englishGlosses)));
 }
 
 // one listener per container instead of one per button
 document.addEventListener('click', e => {
-  console.log(e.target.closest('.entry[data-action]'));
   const btn = e.target.closest('.entry[data-action]');
   if (!btn) return;
   if (btn.dataset.action === 'add') collection.add(btn.dataset.id);
   else collection.delete(btn.dataset.id);
   saveCollection();
   renderCollection();
-  renderDrillRows();
+  renderDrillRows(options.reps, options.kanjiOnly, options.exampleSentences);
   renderResults(search(input.value));   // refresh Add/Added states
 });
 
@@ -190,3 +280,16 @@ fetch('/src/data/words.json')
     statusEl.textContent = `Failed to load: ${err.message}`;
     console.error(err);
   });
+
+// options changes
+optionsForm.addEventListener('change', () => {
+  options = getOptions();
+
+  if(options.strokeOrder) {
+    document.body.classList.add('stroke-order');
+  } else {
+    document.body.classList.remove('stroke-order');
+  }
+  saveOptions();
+  renderDrillRows(options.reps, options.kanjiOnly);
+});
