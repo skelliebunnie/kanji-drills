@@ -302,7 +302,7 @@ input.addEventListener('input', () => {
 });
 
 // boot
-fetch('/src/data/words.json')
+fetch('./src/data/words.json')
   .then(r => {
     if (!r.ok) throw new Error(`HTTP ${r.status} for ${r.url}`);
     return r.json();
