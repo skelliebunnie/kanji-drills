@@ -2,7 +2,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Kanji Drill Sheet Generator</title>
+	<title>漢字ドリル作成ツール</title>
 	
 	<link rel="stylesheet" href="./src/styles/reset.css">
 	<link rel="stylesheet" href="./src/styles/layout.css">
@@ -10,42 +10,50 @@
 </head>
 <body>
 	<div class="page-wrapper">
-		<header class="site-header"><h1>Kanji Drill Sheet Generator</h1></header>
+		<header class="site-header"><h1>漢字ドリル作成ツール</h1></header>
 		<div class="options-wrapper">
-			<h3 class="title">Options <div id="toggle-options"><i data-lucide="chevron-up"></i></div></h3>
+			<h3 class="title">設定 <div id="toggle-options"><i data-lucide="chevron-up"></i></div></h3>
 			<form id="options">
-				<label for="reps">Reps (1-16):
-					<input type="number" id="reps" placeholder="4" value="4" min="1" max="16">
-				</label>
-				<label class="radio-check"><input type="checkbox" id="example-sentences" checked> Include Example sentences</label>
-				<label class="radio-check"><input type="checkbox" id="related-words"> Include Related Words</label>
-				<label class="radio-check"><input type="checkbox" id="en-gloss" checked> Include English glosses</label>
-				<label class="radio-check"><input type="checkbox" id="kanji-only"> Kanji Only</label>
-				<label class="radio-check"><input type="checkbox" id="stroke-order"> Stroke Order</label>
+				<div class="display-options">
+					<label for="reps">繰り返し (1-32):
+						<input type="number" id="reps" placeholder="16" value="16" min="1" max="32">
+					</label>
+					<label class="radio-check"><input type="checkbox" id="example-sentences" checked> 例文を含める</label>
+					<label class="radio-check"><input type="checkbox" id="related-words"> 関連語を含める</label>
+					<label class="radio-check"><input type="checkbox" id="en-gloss" checked> 英語の意味を含める</label>
+					<label class="radio-check"><input type="checkbox" id="stroke-order"> 書き順を表す</label>
+					<label class="radio-check"><input type="checkbox" id="show-grid"> グリッドを表す</label>
+				</div>
+				<div class="kanji-only-option">
+					<label class="radio-check"><input type="checkbox" id="kanji-only"> 漢字だけ</label>
+					<small>漢字が１文字のみ表示されている場合は、このオプションを選択して、音読み・訓読み・およびJLPTレベルを表示させます。</small>
+				</div>
 			</form>
 		</div>
 		<main class="site-content">
-			<div id="sheet">
-				
-			</div>
+			<div id="sheet"></div>
 		</main>
 		
 		<aside class="site-sidebar">
 			<div class="collection-container">
-				<h2>Collection (<span id="count">0</span>)</h2>
+				<h2>集 (<span id="count">0</span>)</h2>
 				<div id="collection"></div>
 			</div>
-			<div class="search">
-				<form role="search" id="search-form">
-					<input type="search" id="query" placeholder="食べる、たべる、食、or &quot;eat&quot;" autocomplete="off" disabled>
+			<div class="search-container">
+				<form role="search" id="search">
+					<h2>サーチ</h2>
+					<label class="searchbar">
+						<i data-lucide="search"></i>
+						<input type="search" id="query" placeholder="search" autocomplete="off" disabled>
+					</label>
 				</form>
-				<div id="status">Loading...</div>
+				<div id="status">読み込み中...</div>
 				<div id="results"></div>
 			</div>
 		</aside>
 		
 		<footer class="site-footer">
-			<p>Built by SkellieBunnie, based on a generator by <a href="https://github.com/jensechu/kanji" target="_blank" rel="noopener noreferrer">jensechu/kanji</a></p>
+			<p>SkellieBunnieで作る。 <a href="https://github.com/jensechu/kanji" target="_blank" rel="noopener noreferrer">jensechu/kanji</a>のプロジェクトに基づいて。</p>
 		</footer>
 	</div>
 	

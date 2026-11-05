@@ -1,4 +1,5 @@
-// Built with the help of Claude.ai, using the JMdict examples data set
+// Built with the help of Claude.ai, using the JMdict examples data set & kanjiAPI
+const apiCache = new Map();
 
 const optionsForm = document.getElementById('options');
 const repsInput = document.getElementById('reps');
@@ -7,22 +8,28 @@ const strokeOrderInput = document.getElementById('stroke-order');
 const exampleSentencesInput = document.getElementById('example-sentences');
 const englishGlossesInput = document.getElementById('en-gloss');
 const relatedWordsInput = document.getElementById('related-words');
+const showGridInput = document.getElementById('show-grid');
 
-let options = loadOptions() || {
+const defaultOptions = {
+  reps: 16,
   exampleSentences: true,
+  relatedWords: false,
   englishGlosses: false,
-  reps: 4,
   kanjiOnly: false,
   strokeOrder: false,
-  relatedWords: false
+  showGrid: false
 };
+
+let options = loadOptions();
 
 function loadOptions() {
   try { 
-    let opts = JSON.parse(localStorage.getItem('options') ?? '{}');
+    let opts = JSON.parse(localStorage.getItem('options') ?? JSON.stringify(defaultOptions));
     return opts;
   }
-  catch { return {}; }
+  catch (err) { 
+    console.log("error getting options:", err);
+  }
 }
 function saveOptions() {
   try { 
@@ -34,12 +41,13 @@ function saveOptions() {
 
 function getOptions() {
   let opt = {
-    reps: parseInt(repsInput.value) || 4,
+    reps: parseInt(repsInput.value) || 16,
     kanjiOnly: kanjiOnlyInput.checked,
     strokeOrder: strokeOrderInput.checked,
     exampleSentences: exampleSentencesInput.checked,
     englishGlosses: englishGlossesInput.checked,
-    relatedWords: relatedWordsInput.checked
+    relatedWords: relatedWordsInput.checked,
+    showGrid: showGridInput.checked
   };
   saveOptions();
   return opt;
@@ -73,6 +81,7 @@ const hasJapanese = q => /[\u3040-\u30ff\u4e00-\u9fff]/.test(q);
 function search(query, limit = 50) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
+  
   const scored = new Map();
   const bump = (w, s) => scored.set(w, Math.max(scored.get(w) ?? 0, s));
 
@@ -97,40 +106,89 @@ function search(query, limit = 50) {
 }
 
 const $ = id => document.getElementById(id);
-const input = $('query'), statusEl = $('status');
+const input = $('query');
+const statusEl = $('status');
 const byId = new Map();
+const keyOf = (id, form) => `${id}|${form}`;
+
+// key -> { id, form }
 let collection = loadCollection();
 
 function loadCollection() {
-  try { return new Set(JSON.parse(localStorage.getItem('collection') ?? '[]')); }
-  catch { return new Set(); }
+  try {
+    const raw = JSON.parse(localStorage.getItem('collection') ?? '[]');
+    const map = new Map();
+    for (const item of raw) {
+      // accepts: "id" (oldest), ["id", form] (previous version), {id, form} (current)
+      const id   = typeof item === 'string' ? item : Array.isArray(item) ? item[0] : item.id;
+      const form = typeof item === 'string' ? null : Array.isArray(item) ? item[1] : item.form;
+      map.set(keyOf(id, form), { id, form });
+    }
+    return map;
+  } catch { return new Map(); }
 }
 function saveCollection() {
-  try { localStorage.setItem('collection', JSON.stringify([...collection])); } catch {}
+  try { localStorage.setItem('collection', JSON.stringify([...collection.values()])); } catch {}
 }
 
+// legacy items have form === null; fill them in once the dictionary has loaded
+function migrateCollection() {
+  const fixed = new Map();
+  for (const { id, form } of collection.values()) {
+    const w = byId.get(id);
+    if (!w) continue;                       // also drops ids that no longer exist
+    const f = form ?? pickForm(w);
+    fixed.set(keyOf(id, f), { id, form: f });
+  }
+  collection = fixed;
+  saveCollection();
+}
+
+// the collection as [{ w, form }], skipping any ids that aren't loaded
+function collectionEntries() {
+  return [...collection.values()]
+    .map(({ id, form }) => ({ w: byId.get(id), form }))
+    .filter(x => x.w);
+}
+
+// best written form for a query: exact match, then starts-with, then contains,
+// else fall back to the first kanji form (or the kana if there's no kanji)
+function pickForm(w, query = '') {
+  const q = query.trim();
+  if (q) {
+    const texts = w.kanji.map(k => k.text);
+    const match = texts.find(t => t === q)
+      ?? texts.find(t => t.startsWith(q))
+      ?? texts.find(t => t.includes(q));
+    if (match) return match;
+  }
+  return w.kanji[0]?.text ?? w.kana[0].text;
+}
+
+// saved choice if the word is in the collection, otherwise the best match for the query
+const formFor = (w, query = '') => collection.get(w.id) ?? pickForm(w, query);
+
 // build one result row using textContent (no innerHTML, so no escaping issues)
-function entryRow(w, { removable = false } = {}) {
+function entryRow(w, { query = '', form = pickForm(w, query) } = {}) {
+  const inCollection = collection.has(keyOf(w.id, form));
+
   const row = document.createElement('div');
   row.className = 'entry';
   row.dataset.id = w.id;
-  
-  if(removable || collection.has(w.id)) {
-    row.classList.add("remove");
-    row.dataset.action = "remove";
-  } else {
-    row.classList.add("add");
-    row.dataset.action = "add";
-  }
-  
-  const rowHeader = document.createElement("header");
-  rowHeader.className = "entry-header";
+  row.dataset.form = form;
+
+  row.classList.add(inCollection ? 'remove' : 'add');
+  row.dataset.action = inCollection ? 'remove' : 'add';
+
+  const rowHeader = document.createElement('header');
+  rowHeader.className = 'entry-header';
 
   const head = document.createElement('span');
   head.className = 'headword';
-  head.textContent = w.kanji[0]?.text ?? w.kana[0].text;
+  head.textContent = form;
   head.dataset.id = w.id;
   rowHeader.append(head);
+
 
   if (w.kanji.length) {
     const r = document.createElement('span');
@@ -156,17 +214,21 @@ function entryRow(w, { removable = false } = {}) {
   return row;
 }
 
-function drillRow(w, reps = 4, kanjiOnly = false, exampleSentences = true, englishGlosses = false, relatedWords = false) {
-  let headword = w.kanji[0]?.text ?? w.kana[0].text;
-
-  if(kanjiOnly) {
-    headword = headword.replace(/\P{Script=Han}/gu, '');
-  }
+function drillRow(w, form, reps = 4, kanjiOnly = false, exampleSentences = true, englishGlosses = false, relatedWords = false) {
+  console.log(w);
+  let word = form;
+  let kanji = word.replace(/\P{Script=Han}/gu, ''); 
+  let kanjiData = kanji ? getKanjiData(kanji) : null;
+  
+  let headword = kanjiOnly && kanji !== '' ? kanji : word;
 
   let blocks = headword.length * reps;
   
   const drillRowContainer = document.createElement('div');
   drillRowContainer.className = "drill-row-container";
+  if(exampleSentences) drillRowContainer.classList.add('has-example');
+  if(englishGlosses) drillRowContainer.classList.add('has-gloss');
+  if(relatedWords) drillRowContainer.classList.add('has-related');
 
   // the header
   const drillRowHeader = document.createElement('div');
@@ -174,9 +236,9 @@ function drillRow(w, reps = 4, kanjiOnly = false, exampleSentences = true, engli
 
   const drillRowTitle = document.createElement('h3');
 
-  if(kanjiOnly) {
+  if(kanjiOnly && kanjiData !== null) {
     drillRowTitle.innerHTML = `<span class="headword"><strong>${headword}</strong></span>`;
-    getKanjiData(headword).then(data => {
+    kanjiData.then(data => {
       if(data) {
         drillRowTitle.innerHTML += data.jlpt ? `<span class="jlpt-tag">N${data.jlpt}</span>` : '';
         drillRowTitle.innerHTML += data.stroke_count ? `<span class="stroke-count">${data.stroke_count}画</span>` : '';
@@ -188,39 +250,43 @@ function drillRow(w, reps = 4, kanjiOnly = false, exampleSentences = true, engli
     });
 
   } else {
-    drillRowTitle.innerHTML = `<span class="headword"><strong>${w.kanji[0]?.text ?? w.kana[0].text}</strong></span> <span class="reading">${w.kana[0].text}</span>`;
+    drillRowTitle.innerHTML = `<span class="headword"><strong>${word}</strong></span> <span class="reading">${w.kana[0].text}</span>`;
   }
   drillRowHeader.append(drillRowTitle);
 
-  if(relatedWords) {
-    getKanjiWords(headword).then(data => {
-      if(data && data.length) {
-        const relatedWordsContainer = document.createElement('div');
-        relatedWordsContainer.className = 'related-words-container';
-        relatedWordsContainer.innerHTML = `<strong>Related Words:</strong>`;
-        data.slice(0, 5).forEach(word => {
-          const wordEl = document.createElement('span');
-          wordEl.className = 'related-word';
-          wordEl.innerHTML = `<ruby>${word.variants[0].written}<rt>${word.variants[0].pronounced}</rt></ruby>`;
-          relatedWordsContainer.append(wordEl);
-        });
-        drillRowHeader.append(relatedWordsContainer);
-      }
-    });
-  } 
+  const exampleAndRelatedCont = document.createElement('div');
+  exampleAndRelatedCont.className = "example-related-cont";
+  
+  getRelatedWords(kanji, word).then(words => {
+    if (!words.length) return;
+    const container = document.createElement('div');
+    container.className = 'related-words';
+    container.innerHTML = `<p><span><strong>関連語: </strong></span><span>${words.join(', ')}</span></p>`;
+    exampleAndRelatedCont.append(container);
+  });
 
-
-  if(englishGlosses) {
-    drillRowHeader.innerHTML += `<div class="gloss-container"><span class="gloss">${w.sense.slice(0, 3).map(s => s.gloss.map(g => g.text).join('; ')).join(' / ')}</span></div>`;
-  }
-
-  if(exampleSentences && w.sense[0]?.examples?.length) {
+  if(w.sense[0]?.examples?.length) {
     const exampleSentence = w.sense[0].examples[0];
-    const sentenceEl = document.createElement('p');
+    const sentenceEl = document.createElement('div');
     sentenceEl.className = 'example-sentence';
-    sentenceEl.innerHTML = `<strong>例:</strong> ${exampleSentence.ja}`;
-    drillRowHeader.append(sentenceEl);
+    sentenceEl.innerHTML = `<p><span><strong>例:</strong></span> ${exampleSentence.ja}</p>`;
+    exampleAndRelatedCont.append(sentenceEl);
   }
+  
+  drillRowHeader.append(exampleAndRelatedCont);
+  
+  const enGlossesContainer = document.createElement('div');
+  enGlossesContainer.className = 'en-glosses-container';
+  
+  if(!kanjiOnly) {
+    enGlossesContainer.innerHTML = `<span class="gloss">${w.sense.slice(0, 3).map(s => s.gloss.map(g => g.text).join('; ')).join(' / ')}</span>`;
+  } else {
+    kanjiData.then(data => {
+      console.log(data);
+      enGlossesContainer.innerHTML = `<span class="gloss">${data.meanings.join(', ')}</span>`;
+    })
+  }
+  drillRowHeader.append(enGlossesContainer);
 
   drillRowContainer.append(drillRowHeader);
 
@@ -245,17 +311,29 @@ function updateOptionsUI() {
   repsInput.value = options.reps;
   kanjiOnlyInput.checked = options.kanjiOnly;
   strokeOrderInput.checked = options.strokeOrder;
+  exampleSentencesInput.checked = options.exampleSentences;
+  englishGlossesInput.checked = options.englishGlosses;
+  relatedWordsInput.checked = options.relatedWords;
+  showGridInput.checked = options.showGrid;
 
   document.getElementById('reps').value = options.reps;
   document.getElementById('kanji-only').checked = options.kanjiOnly;
   document.getElementById('stroke-order').checked = options.strokeOrder; 
   document.getElementById('example-sentences').checked = options.exampleSentences;
   document.getElementById('en-gloss').checked = options.englishGlosses;
+  document.getElementById('related-words').checked = options.relatedWords;
+  document.getElementById('show-grid').checked = options.showGrid;
 
   if(options.strokeOrder) {
     document.body.classList.add('stroke-order');
   } else {
     document.body.classList.remove('stroke-order');
+  }
+  
+  if(options.showGrid) {
+    document.body.classList.add('grid');
+  } else {
+    document.body.classList.remove('grid');
   }
 
   renderDrillRows(options.reps, options.kanjiOnly, options.exampleSentences, options.englishGlosses);
@@ -263,34 +341,35 @@ function updateOptionsUI() {
 updateOptionsUI(); 
 
 function renderResults(list) {
-  $('results').replaceChildren(...list.map(w => entryRow(w, false)));
+  $('results').replaceChildren(...list.map(w => entryRow(w, { query: input.value })));
   statusEl.textContent = list.length ? `${list.length} result(s)` : (input.value.trim() ? 'No matches' : '');
 }
 
 function renderCollection() {
-  const words = [...collection].map(id => byId.get(id)).filter(Boolean);
-  $('collection').replaceChildren(...words.map(w => entryRow(w, { removable: true })));
-  $('count').textContent = words.length;
+  const items = collectionEntries();
+  $('collection').replaceChildren(...items.map(({ w, form }) => entryRow(w, { form })));
+  $('count').textContent = items.length;
 }
 
 function renderDrillRows(reps = options.reps, kanjiOnly = options.kanjiOnly, exampleSentences = options.exampleSentences, englishGlosses = options.englishGlosses, relatedWords = options.relatedWords) {
-  const words = [...collection].map(id => byId.get(id)).filter(Boolean);
-  $('sheet').replaceChildren(...words.map(w => drillRow(w, reps, kanjiOnly, exampleSentences, englishGlosses, relatedWords)));
+  $('sheet').replaceChildren(...collectionEntries().map(({ w, form }) =>
+    drillRow(w, form, reps, kanjiOnly, exampleSentences, englishGlosses, relatedWords)));
 }
 
-// one listener per container instead of one per button
 document.addEventListener('click', e => {
   const btn = e.target.closest('.entry[data-action]');
   if (!btn) return;
-  if (btn.dataset.action === 'add') collection.add(btn.dataset.id);
-  else collection.delete(btn.dataset.id);
+  const { id, form, action } = btn.dataset;
+  const key = keyOf(id, form);
+  if (action === 'add') collection.set(key, { id, form });
+  else collection.delete(key);
   saveCollection();
   renderCollection();
   renderDrillRows(options.reps, options.kanjiOnly, options.exampleSentences);
-  renderResults(search(input.value));   // refresh Add/Added states
+  renderResults(search(input.value));
 });
 
-$('search-form').addEventListener('submit', e => e.preventDefault());
+$('search').addEventListener('submit', e => e.preventDefault());
 
 // options event listeners
 
@@ -310,9 +389,10 @@ fetch('./src/data/words.json')
   .then(words => {
     for (const w of words) byId.set(w.id, w);
     buildIndex(words);
+    migrateCollection();
     input.disabled = false;
     input.focus();
-    statusEl.textContent = `${words.length.toLocaleString()} entries loaded`;
+    statusEl.textContent = `${words.length.toLocaleString()}件の項目を読み込みました`;
     renderCollection();
     renderDrillRows();
   })
@@ -324,45 +404,67 @@ fetch('./src/data/words.json')
 // options changes
 optionsForm.addEventListener('change', () => {
   options = getOptions();
-
-  if(options.strokeOrder) {
-    document.body.classList.add('stroke-order');
-  } else {
-    document.body.classList.remove('stroke-order');
-  }
+  updateOptionsUI(); 
   saveOptions();
-  renderDrillRows(options.reps, options.kanjiOnly);
 });
 
 // Get KanjiAPI data
-async function getKanjiData(character) {
-  const url = `https://kanjiapi.dev/v1/kanji/${encodeURIComponent(character)}`;
-  
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Failed to fetch kanji:', error);
+
+function kanjiApi(path, character) {
+  const url = `https://kanjiapi.dev/v1/${path}/${encodeURIComponent(character)}`;
+  if (!apiCache.has(url)) {
+    const p = fetch(url)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+        return r.json();
+      })
+      .catch(err => {
+        console.error('KanjiAPI failed:', err);
+        apiCache.delete(url);                     // don't cache failures
+      });
+    apiCache.set(url, p);
   }
+  return apiCache.get(url);
+}
+
+function getKanjiData(text) {
+  return kanjiApi('kanji', [...text][0]);         // first kanji only, as before
 }
 
 async function getKanjiWords(character) {
-  const url = `https://kanjiapi.dev/v1/words/${encodeURIComponent(character)}`;
-  
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+  const data = await kanjiApi('words', character);
+  return data && [...data].reverse();             // copy, so the cached array isn't mutated
+}
+
+// related words for each kanji in a word, as one flat array of strings
+async function getRelatedWords(kanji, exclude = '') {
+  const chars = [...new Set(kanji)];
+  if (!chars.length) return [];
+  const perKanji = chars.length === 1 ? 6 : 3;
+
+  const lists = await Promise.all(chars.map(ch => getKanjiWords(ch)));
+
+  const seen = new Set([exclude]);
+  const out = [];
+
+  for (const [i, list] of lists.entries()) {
+    const ch = chars[i];
+    let taken = 0;
+
+    for (const entry of list ?? []) {
+      // same dictionary word as the headword (伸ばす ≡ 延ばす), whichever form was picked
+      if (entry.variants.some(v => v.written === exclude)) continue;
+
+      // show the written form that actually contains this kanji
+      const written = (entry.variants.find(v => v.written.includes(ch)) ?? entry.variants[0])?.written;
+      if (!written || seen.has(written)) continue;
+
+      seen.add(written);
+      out.push(written);
+      if (++taken === perKanji) break;
     }
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Failed to fetch kanji:', error);
   }
+  return out;
 }
 
 // toggle options panel

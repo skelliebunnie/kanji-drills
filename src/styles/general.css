@@ -10,7 +10,7 @@ body {
 
 	&.stroke-order .kanji-character {
 		font-family: "KanjiStrokeOrders";
-		font-size: 72px;
+		font-size: 78px;
 	}
 }
 
@@ -26,25 +26,12 @@ body {
 .search {
 	display: flex;
 	flex-direction: column;
-	
-	#status {
-		color: #777;
-		font-size: smaller;
-		font-style: italic;
-	}
 }
 
-form {
-	margin-top: 1rem;
-	width: 100%;
-	display: flex;
-	
-	fieldset {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-direction: row;
-	}
+#status {
+	color: #777;
+	font-size: smaller;
+	font-style: italic;
 }
 
 input[type="search"] {
@@ -75,6 +62,17 @@ input[type="search"] {
 		height: auto;
 		transition: all 0.3s ease-in-out;
 		overflow: hidden;
+	}
+	
+	.display-options,
+	.kanji-only-option {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+	}
+	
+	.kanji-only-option {
+		flex-direction: column;
 	}
 
 	#toggle-options {
@@ -141,6 +139,87 @@ input[type="radio"] {
 	}
 }
 
+/* search styling */
+#search {
+	padding-top: 1rem;
+	margin-bottom: 0.25rem;
+	
+	.searchbar {
+		display: flex;
+		background: #777;
+		align-items: center;
+		padding-left: 0.5rem;
+		border-radius: 8px;
+	}
+	
+	input {
+		border-radius: 0 8px 8px 0;
+		border: 1px solid #333;
+		
+	}
+	
+	svg {
+		color: white;
+		width: 24px;
+		height: 24px;
+		margin-right: 0.5rem;
+	}
+}
+
+.ksearch-only {
+	display: flex;
+	align-items: center;
+}
+
+/* Container for the toggle */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+		margin: 0.5rem;
+}
+
+/* Hide default checkbox */
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* The track */
+.slider {
+    position: absolute;
+    cursor: pointer;
+    background-color: blue;
+    border-radius: 24px;
+    width: 100%;
+    height: 100%;
+    transition: background-color 0.3s;
+}
+
+/* The circular slider */
+.slider::before {
+    content: "";
+    position: absolute;
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 2px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+
+/* Toggled state */
+.toggle-switch input:checked+.slider {
+    background-color: #4caf50;
+}
+
+.toggle-switch input:checked+.slider::before {
+    transform: translateX(22px);
+}
+
 /* entry styling */
 .entry {
 	background: #ccc;
@@ -203,18 +282,64 @@ input[type="radio"] {
 	.drill-row-header {
 		border-bottom: 1px solid #ccc;
 		border-top: 3px solid #333;
-		padding-left: 2rem;
 		margin-bottom: 0.5rem;
-
+		display: flex;
+		flex-wrap: wrap;
+		
+		.en-glosses-container,
+		.example-sentence,
+		.related-words {
+			display: none;
+		}
+	
 		h3 {
-			border-bottom: 1px dotted #777;
+			grid-area: rowTitle;
 			padding-bottom: 0.25rem;
 			margin-bottom: 0.25rem;
+			width: 47%;
 		}
+		
+		.example-related-cont {
+			width: 47%;
+			margin-bottom: 0.5rem;
+		}
+	}
+	
+	&:is(.has-example, .has-related) {
+		.example-related-cont {
+			border: 1px solid #ccc;
+			border-radius: 8px;
+			padding: 0.25rem;
+			margin-top: 0.5rem;
+		}
+	}
+	
+	.example-sentence p,
+	.related-words p {
+		display: flex;
+		flex-wrap: wrap;
+		
+		span:first-child {
+			display: inline-block;
+			min-width: 7ch;
+		}
+	}
+	
+	&.has-gloss .en-glosses-container {
+		display: block;
+		grid-area: gloss;
+		margin-bottom: 0.5rem;
+	}
+	
+	&.has-related .related-words {
+		display: block;
+		grid-area: related;
+	}
 
-		.example-sentence {
-			padding-bottom: 0.25rem;
-		}
+	&.has-example .example-sentence {
+		display: block;
+		grid-area: example;
+		padding-bottom: 0.25rem;
 	}
 
 	.stroke-count {
@@ -226,14 +351,10 @@ input[type="radio"] {
 		font-weight: normal;
 	}
 
-	.related-word + .related-word:before {
-		content: ", ";
-	}
-
 	.jlpt-tag {
 		position: absolute;
 		top: -0.5rem;
-		left: -1rem;
+		right: 1rem;
 		background: white;
 		padding: 0 0.25rem;
 	}
@@ -249,6 +370,10 @@ input[type="radio"] {
 		padding-left: 0.5rem;
 		font-size: 1rem;
 		font-weight: normal;
+		
+		span + span {
+			margin-left: 1rem;
+		}
 	}
 }
 
@@ -263,13 +388,33 @@ input[type="radio"] {
 	width: 80px;
 	height: 80px;
 	border: 1px solid black;
+	position: relative;
+	
+	.grid &::before {
+		position: absolute;
+		top: 0;
+		content: "";
+		width: 80px;
+		height: 40px;
+		border-bottom: 1px dashed #777;
+	}
+	
+	.grid &::after {
+		position: absolute;
+		top: 0;
+		left: 0;
+		content: "";
+		width: 40px;
+		height: 80px;
+		border-right: 1px dashed #777;
+	}
 	
 	&.kanji-character {
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		font-size: 56px;
-		color: #ccc;
+		color: #999;
 	}
 }
 
@@ -284,4 +429,14 @@ input[type="radio"] {
 	.page-wrapper {
 		display: block;
 	}
+	
+	.drill-row-container {
+    break-inside: avoid;
+    page-break-inside: avoid;   /* older-browser fallback */
+  }
+	
+	.drill-row-header {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
 }

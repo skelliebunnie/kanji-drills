@@ -3,7 +3,7 @@ body {
 }
 
 .page-wrapper {
-	background-color: yellowgreen;
+	background-color: skyblue;
 	min-height: 100vh;
 	display: grid;
 	grid-template-columns: 1fr;
@@ -48,11 +48,26 @@ body {
 @media (min-width: 768px) {
 	.page-wrapper {
 		grid-template-columns: 1fr 1fr minmax(min-content, 20%);
-		grid-template-rows: min-content min-content auto min-content;
+		grid-template-rows: minmax(0, min-content) minmax(0, min-content) auto minmax(0, min-content);
 		grid-template-areas: 
 			"siteHeader siteHeader siteHeader"
 			"options options aside"
 			"main main aside"
 			"footer footer footer";
+	}
+	
+	#options {
+		display: flex;
+		flex-direction: row;
+		gap: 2rem;
+		
+		.display-options {
+			max-width: 60%;
+		}
+		
+		.kanji-only-option {
+			flex: 1 0 auto;
+			max-width: 30%;
+		}
 	}
 }
