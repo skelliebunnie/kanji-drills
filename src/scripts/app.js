@@ -6,13 +6,15 @@ const kanjiOnlyInput = document.getElementById('kanji-only');
 const strokeOrderInput = document.getElementById('stroke-order');
 const exampleSentencesInput = document.getElementById('example-sentences');
 const englishGlossesInput = document.getElementById('en-gloss');
+const relatedWordsInput = document.getElementById('related-words');
 
 let options = loadOptions() || {
   exampleSentences: true,
   englishGlosses: false,
   reps: 4,
   kanjiOnly: false,
-  strokeOrder: false
+  strokeOrder: false,
+  relatedWords: false
 };
 
 function loadOptions() {
@@ -36,7 +38,8 @@ function getOptions() {
     kanjiOnly: kanjiOnlyInput.checked,
     strokeOrder: strokeOrderInput.checked,
     exampleSentences: exampleSentencesInput.checked,
-    englishGlosses: englishGlossesInput.checked
+    englishGlosses: englishGlossesInput.checked,
+    relatedWords: relatedWordsInput.checked
   };
   saveOptions();
   return opt;
@@ -153,9 +156,9 @@ function entryRow(w, { removable = false } = {}) {
   return row;
 }
 
-function drillRow(w, reps = 4, kanjiOnly = false, exampleSentences = true, englishGlosses = false) {
+function drillRow(w, reps = 4, kanjiOnly = false, exampleSentences = true, englishGlosses = false, relatedWords = false) {
   let headword = w.kanji[0]?.text ?? w.kana[0].text;
-  console.log(w);
+
   if(kanjiOnly) {
     headword = headword.replace(/\P{Script=Han}/gu, '');
   }
@@ -168,9 +171,47 @@ function drillRow(w, reps = 4, kanjiOnly = false, exampleSentences = true, engli
   // the header
   const drillRowHeader = document.createElement('div');
   drillRowHeader.className = "drill-row-header";
-  drillRowHeader.innerHTML = kanjiOnly ? `<div class="title"><span class="headword"><strong>${headword}</strong></span></div>` : `<div class="title"><span class="headword"><strong>${w.kanji[0]?.text ?? w.kana[0].text}</strong></span> <span class="reading">${w.kana[0].text}</span></div>`;
+
+  const drillRowTitle = document.createElement('h3');
+
+  if(kanjiOnly) {
+    drillRowTitle.innerHTML = `<span class="headword"><strong>${headword}</strong></span>`;
+    getKanjiData(headword).then(data => {
+      if(data) {
+        drillRowTitle.innerHTML += data.jlpt ? `<span class="jlpt-tag">N${data.jlpt}</span>` : '';
+        drillRowTitle.innerHTML += data.stroke_count ? `<span class="stroke-count">${data.stroke_count}画</span>` : '';
+        drillRowTitle.innerHTML += `<div class="readings">
+          <span><strong>音読み:</strong> ${data.on_readings?.join(', ') || 'N/A'}</span>
+          <span><strong>訓読み:</strong> ${data.kun_readings?.join(', ') || 'N/A'}</span>
+        </div>`;
+      }
+    });
+
+  } else {
+    drillRowTitle.innerHTML = `<span class="headword"><strong>${w.kanji[0]?.text ?? w.kana[0].text}</strong></span> <span class="reading">${w.kana[0].text}</span>`;
+  }
+  drillRowHeader.append(drillRowTitle);
+
+  if(relatedWords) {
+    getKanjiWords(headword).then(data => {
+      if(data && data.length) {
+        const relatedWordsContainer = document.createElement('div');
+        relatedWordsContainer.className = 'related-words-container';
+        relatedWordsContainer.innerHTML = `<strong>Related Words:</strong>`;
+        data.slice(0, 5).forEach(word => {
+          const wordEl = document.createElement('span');
+          wordEl.className = 'related-word';
+          wordEl.innerHTML = `<ruby>${word.variants[0].written}<rt>${word.variants[0].pronounced}</rt></ruby>`;
+          relatedWordsContainer.append(wordEl);
+        });
+        drillRowHeader.append(relatedWordsContainer);
+      }
+    });
+  } 
+
+
   if(englishGlosses) {
-    drillRowHeader.innerHTML += ` | <span class="gloss">${w.sense.slice(0, 3).map(s => s.gloss.map(g => g.text).join('; ')).join(' / ')}</span>`;
+    drillRowHeader.innerHTML += `<div class="gloss-container"><span class="gloss">${w.sense.slice(0, 3).map(s => s.gloss.map(g => g.text).join('; ')).join(' / ')}</span></div>`;
   }
 
   if(exampleSentences && w.sense[0]?.examples?.length) {
@@ -180,7 +221,6 @@ function drillRow(w, reps = 4, kanjiOnly = false, exampleSentences = true, engli
     sentenceEl.innerHTML = `<strong>例:</strong> ${exampleSentence.ja}`;
     drillRowHeader.append(sentenceEl);
   }
-
 
   drillRowContainer.append(drillRowHeader);
 
@@ -233,9 +273,9 @@ function renderCollection() {
   $('count').textContent = words.length;
 }
 
-function renderDrillRows(reps = options.reps, kanjiOnly = options.kanjiOnly, exampleSentences = options.exampleSentences, englishGlosses = options.englishGlosses) {
+function renderDrillRows(reps = options.reps, kanjiOnly = options.kanjiOnly, exampleSentences = options.exampleSentences, englishGlosses = options.englishGlosses, relatedWords = options.relatedWords) {
   const words = [...collection].map(id => byId.get(id)).filter(Boolean);
-  $('sheet').replaceChildren(...words.map(w => drillRow(w, reps, kanjiOnly, exampleSentences, englishGlosses)));
+  $('sheet').replaceChildren(...words.map(w => drillRow(w, reps, kanjiOnly, exampleSentences, englishGlosses, relatedWords)));
 }
 
 // one listener per container instead of one per button
@@ -292,4 +332,50 @@ optionsForm.addEventListener('change', () => {
   }
   saveOptions();
   renderDrillRows(options.reps, options.kanjiOnly);
+});
+
+// Get KanjiAPI data
+async function getKanjiData(character) {
+  const url = `https://kanjiapi.dev/v1/kanji/${encodeURIComponent(character)}`;
+  
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Failed to fetch kanji:', error);
+  }
+}
+
+async function getKanjiWords(character) {
+  const url = `https://kanjiapi.dev/v1/words/${encodeURIComponent(character)}`;
+  
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Failed to fetch kanji:', error);
+  }
+}
+
+// toggle options panel
+const toggleOptionsBtn = document.getElementById('toggle-options');
+const optionsWrapper = document.querySelector('.options-wrapper');
+
+toggleOptionsBtn.addEventListener('click', () => {
+  optionsWrapper.classList.toggle('collapsed');
+  const icon = toggleOptionsBtn.querySelector('svg');
+  if (optionsWrapper.classList.contains('collapsed')) {
+    icon.setAttribute('data-lucide', 'chevron-down');
+  } else {
+    icon.setAttribute('data-lucide', 'chevron-up');
+  }
+  lucide.createIcons(); // Refresh icons after changing
 });

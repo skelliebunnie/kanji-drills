@@ -12,12 +12,13 @@
 	<div class="page-wrapper">
 		<header class="site-header"><h1>Kanji Drill Sheet Generator</h1></header>
 		<div class="options-wrapper">
-			<h4>Options</h4>
+			<h3 class="title">Options <div id="toggle-options"><i data-lucide="chevron-up"></i></div></h3>
 			<form id="options">
 				<label for="reps">Reps (1-16):
 					<input type="number" id="reps" placeholder="4" value="4" min="1" max="16">
 				</label>
 				<label class="radio-check"><input type="checkbox" id="example-sentences" checked> Include Example sentences</label>
+				<label class="radio-check"><input type="checkbox" id="related-words"> Include Related Words</label>
 				<label class="radio-check"><input type="checkbox" id="en-gloss" checked> Include English glosses</label>
 				<label class="radio-check"><input type="checkbox" id="kanji-only"> Kanji Only</label>
 				<label class="radio-check"><input type="checkbox" id="stroke-order"> Stroke Order</label>
@@ -50,5 +51,10 @@
 	
 	<!-- <script src="./src/scripts/options.js"></script> -->
 	<script src="./src/scripts/app.js"></script>
+
+	<script src="https://unpkg.com/lucide@1.69.0/dist/umd/lucide.min.js"></script>
+	<script>
+		lucide.createIcons();
+	</script>
 </body>
 </html>

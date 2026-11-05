@@ -54,10 +54,34 @@ input[type="search"] {
 }
 
 /* options */
-.options-wrapper form {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.5rem;
+.options-wrapper {
+	position: relative;
+
+	&.collapsed {
+		form {
+			height: 0;
+			transition: all 0.3s ease-in-out;
+		}
+	}
+
+	.title {
+		position: relative;
+	}
+
+	form {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		height: auto;
+		transition: all 0.3s ease-in-out;
+		overflow: hidden;
+	}
+
+	#toggle-options {
+		position: absolute;
+		right: 0.25rem;
+		top: 0;
+	}
 }
 
 .radio-check {
@@ -174,13 +198,57 @@ input[type="radio"] {
 
 /* sheet-specific styling */
 .drill-row-container {
-	.title {
+	position: relative;
+
+	.drill-row-header {
 		border-bottom: 1px solid #ccc;
 		border-top: 3px solid #333;
+		padding-left: 2rem;
+		margin-bottom: 0.5rem;
+
+		h3 {
+			border-bottom: 1px dotted #777;
+			padding-bottom: 0.25rem;
+			margin-bottom: 0.25rem;
+		}
+
+		.example-sentence {
+			padding-bottom: 0.25rem;
+		}
+	}
+
+	.stroke-count {
+		background: #ccc;
+		padding: 0 0.25em;
+		margin-left: 1rem;
+		border-radius: 8px;
+		font-size: smaller;
+		font-weight: normal;
+	}
+
+	.related-word + .related-word:before {
+		content: ", ";
+	}
+
+	.jlpt-tag {
+		position: absolute;
+		top: -0.5rem;
+		left: -1rem;
+		background: white;
+		padding: 0 0.25rem;
 	}
 
 	.headword {
 		font-size: 2rem;
+	}
+
+	.readings {
+		display: inline-block;
+		border-left: 1px solid #ccc;
+		margin-left: 0.5rem;
+		padding-left: 0.5rem;
+		font-size: 1rem;
+		font-weight: normal;
 	}
 }
 
