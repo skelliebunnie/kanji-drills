@@ -2,7 +2,7 @@
 
 @font-face {
 	font-family: "KanjiStrokeOrders";
-	src: url("/src/fonts/KanjiStrokeOrders-4.005/KanjiStrokeOrders_v4.005.ttf");
+	src: url("./src/fonts/KanjiStrokeOrders-4.005/KanjiStrokeOrders_v4.005.ttf");
 }
 
 body {

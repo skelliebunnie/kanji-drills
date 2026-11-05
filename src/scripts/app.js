@@ -215,7 +215,6 @@ function entryRow(w, { query = '', form = pickForm(w, query) } = {}) {
 }
 
 function drillRow(w, form, reps = 4, kanjiOnly = false, exampleSentences = true, englishGlosses = false, relatedWords = false) {
-  console.log(w);
   let word = form;
   let kanji = word.replace(/\P{Script=Han}/gu, ''); 
   let kanjiData = kanji ? getKanjiData(kanji) : null;
@@ -282,7 +281,6 @@ function drillRow(w, form, reps = 4, kanjiOnly = false, exampleSentences = true,
     enGlossesContainer.innerHTML = `<span class="gloss">${w.sense.slice(0, 3).map(s => s.gloss.map(g => g.text).join('; ')).join(' / ')}</span>`;
   } else {
     kanjiData.then(data => {
-      console.log(data);
       enGlossesContainer.innerHTML = `<span class="gloss">${data.meanings.join(', ')}</span>`;
     })
   }
