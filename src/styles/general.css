@@ -2,7 +2,7 @@
 
 @font-face {
 	font-family: "KanjiStrokeOrders";
-	src: url("./src/fonts/KanjiStrokeOrders-4.005/KanjiStrokeOrders_v4.005.ttf");
+	src: url("../fonts/KanjiStrokeOrders-4.005/KanjiStrokeOrders_v4.005.ttf");
 }
 
 body {
@@ -12,10 +12,6 @@ body {
 		font-family: "KanjiStrokeOrders";
 		font-size: 78px;
 	}
-}
-
-.strokeOrder {
-	font-family: "KanjiStrokeOrders";
 }
 
 .collection-container {
@@ -29,7 +25,7 @@ body {
 }
 
 #status {
-	color: #777;
+	color: var(--yellow);
 	font-size: smaller;
 	font-style: italic;
 }
@@ -67,11 +63,15 @@ input[type="search"] {
 	.display-options,
 	.kanji-only-option {
 		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
 		gap: 0.5rem;
 		align-items: center;
 	}
 	
 	.kanji-only-option {
+		border-top: 1px solid #aaa;
+		padding-top: 1rem;
 		flex-direction: column;
 	}
 
@@ -222,7 +222,8 @@ input[type="radio"] {
 
 /* entry styling */
 .entry {
-	background: #ccc;
+	background: var(--teal);
+	color: var(--indigo);
 	border-radius: 8px;
 	margin: 0.25rem 0;
 	padding: 0.25rem;
@@ -285,6 +286,7 @@ input[type="radio"] {
 		margin-bottom: 0.5rem;
 		display: flex;
 		flex-wrap: wrap;
+		padding-top: 0.75rem;
 		
 		.en-glosses-container,
 		.example-sentence,
@@ -302,11 +304,13 @@ input[type="radio"] {
 		.example-related-cont {
 			width: 47%;
 			margin-bottom: 0.5rem;
+			display: flex;
+			flex-direction: column-reverse;
 		}
 	}
 	
 	&:is(.has-example, .has-related) {
-		.example-related-cont {
+		.example-related-cont .related-words {
 			border: 1px solid #ccc;
 			border-radius: 8px;
 			padding: 0.25rem;
@@ -322,6 +326,25 @@ input[type="radio"] {
 		span:first-child {
 			display: inline-block;
 			min-width: 7ch;
+		}
+	}
+	
+	.related-words {
+		position: relative;
+		
+		&:before {
+			content: "関連語";
+			position: absolute;
+			top: -1rem;
+			left: 0.25rem;
+			padding: 0 0.5rem;
+			font-weight: bold;
+			font-size: larger;
+			background: white;
+		}
+		
+		p {
+			margin: 0.5rem 0 0 1rem;
 		}
 	}
 	
@@ -349,6 +372,7 @@ input[type="radio"] {
 		border-radius: 8px;
 		font-size: smaller;
 		font-weight: normal;
+		white-space: pre;
 	}
 
 	.jlpt-tag {
@@ -365,11 +389,11 @@ input[type="radio"] {
 
 	.readings {
 		display: inline-block;
-		border-left: 1px solid #ccc;
 		margin-left: 0.5rem;
 		padding-left: 0.5rem;
 		font-size: 1rem;
 		font-weight: normal;
+		margin-top: 0.5rem;
 		
 		span + span {
 			margin-left: 1rem;
@@ -413,8 +437,17 @@ input[type="radio"] {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 56px;
-		color: #999;
+		font-size: 64px;
+		color: #ccc;
+		
+		&.first { color: #888; }
+		&.second { color: #aaa; }
+	}
+}
+
+@media (min-width: 768px) {
+	#options .kanji-only-option {
+		border-top: 0;
 	}
 }
 
@@ -422,7 +455,7 @@ input[type="radio"] {
 	.site-header,
 	.site-sidebar,
 	.site-footer,
-	#options {
+	.options-wrapper {
 		display: none;
 	}
 	

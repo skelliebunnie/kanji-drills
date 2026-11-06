@@ -2,8 +2,15 @@ body {
 	font-family: "sans-serif";
 }
 
+a {
+	color: var(--yellow);
+	text-decoration: none;
+	border-bottom: 1px solid var(--yellow);
+}
+
 .page-wrapper {
-	background-color: skyblue;
+	background-color: var(--darkblue);
+	color: var(--beige);
 	min-height: 100vh;
 	display: grid;
 	grid-template-columns: 1fr;
@@ -30,12 +37,14 @@ body {
 
 .page-wrapper > .options-wrapper {
 	grid-area: options;
-	background-color: lemonchiffon;
+	background-color: var(--beige);
+	color: var(--indigo);
 }
 
 .page-wrapper > main { 
 	grid-area: main;
 	background: #fff;
+	color: #000;
 	padding-top: 2rem;
 }
 .page-wrapper > aside { 
@@ -43,6 +52,7 @@ body {
 }
 .page-wrapper > footer { 
 	grid-area: footer;
+	text-align: center;
 }
 
 @media (min-width: 768px) {

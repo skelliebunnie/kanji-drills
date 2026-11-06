@@ -219,9 +219,7 @@ function drillRow(w, form, reps = 4, kanjiOnly = false, exampleSentences = true,
   let kanji = word.replace(/\P{Script=Han}/gu, ''); 
   let kanjiData = kanji ? getKanjiData(kanji) : null;
   
-  let headword = kanjiOnly && kanji !== '' ? kanji : word;
-
-  let blocks = headword.length * reps;
+  let headword = kanjiOnly && kanji !== '' ? kanji.slice(0, 1) : word;
   
   const drillRowContainer = document.createElement('div');
   drillRowContainer.className = "drill-row-container";
@@ -242,8 +240,8 @@ function drillRow(w, form, reps = 4, kanjiOnly = false, exampleSentences = true,
         drillRowTitle.innerHTML += data.jlpt ? `<span class="jlpt-tag">N${data.jlpt}</span>` : '';
         drillRowTitle.innerHTML += data.stroke_count ? `<span class="stroke-count">${data.stroke_count}画</span>` : '';
         drillRowTitle.innerHTML += `<div class="readings">
-          <span><strong>音読み:</strong> ${data.on_readings?.join(', ') || 'N/A'}</span>
-          <span><strong>訓読み:</strong> ${data.kun_readings?.join(', ') || 'N/A'}</span>
+          <p><strong>音読み:</strong> ${data.on_readings?.join(', ') || 'N/A'} | 
+          <strong>訓読み:</strong> ${data.kun_readings?.join(', ') || 'N/A'}</p>
         </div>`;
       }
     });
@@ -260,15 +258,15 @@ function drillRow(w, form, reps = 4, kanjiOnly = false, exampleSentences = true,
     if (!words.length) return;
     const container = document.createElement('div');
     container.className = 'related-words';
-    container.innerHTML = `<p><span><strong>関連語: </strong></span><span>${words.join(', ')}</span></p>`;
+    container.innerHTML = `<p>${words.join(' &#8226; ')}</p>`;
     exampleAndRelatedCont.append(container);
   });
 
   if(w.sense[0]?.examples?.length) {
     const exampleSentence = w.sense[0].examples[0];
-    const sentenceEl = document.createElement('div');
+    const sentenceEl = document.createElement('p');
     sentenceEl.className = 'example-sentence';
-    sentenceEl.innerHTML = `<p><span><strong>例:</strong></span> ${exampleSentence.ja}</p>`;
+    sentenceEl.innerHTML = `<span><strong>例:</strong></span> ${exampleSentence.ja}`;
     exampleAndRelatedCont.append(sentenceEl);
   }
   
@@ -291,12 +289,19 @@ function drillRow(w, form, reps = 4, kanjiOnly = false, exampleSentences = true,
   const blockContainer = document.createElement('div');
   blockContainer.className = "block-container";
   // the blocks
-  for(let i = 0; i < blocks; i++) {
+  const TRACE_COPIES = 3;                              // how many filled copies to show
+  const chars = headword.length > 1 ? [...headword] : headword;                         // also safe for rare kanji
+  const blocks = chars.length * reps;
+  const filled = chars.length * Math.min(TRACE_COPIES, reps);
+
+  for (let i = 0; i < blocks; i++) {
     const block = document.createElement('div');
-    block.className = "kanji-block";
-    if(i < headword.length) {
-      block.classList.add("kanji-character");
-      block.textContent = headword.charAt(i);
+    block.className = 'kanji-block';
+    if (i < filled) {
+      block.classList.add('kanji-character');
+      if(i < chars.length) block.classList.add('first');
+      if(i < chars.length * 2 && i >= chars.length) block.classList.add('second');
+      block.textContent = chars[i % chars.length];     // wraps around for each copy
     }
     blockContainer.append(block);
   }
