@@ -438,10 +438,10 @@ input[type="radio"] {
 		align-items: center;
 		justify-content: center;
 		font-size: 64px;
-		color: #ccc;
+		color: #eee;
 		
-		&.first { color: #888; }
-		&.second { color: #aaa; }
+		&.first { color: #aaa; }
+		&.second { color: #ccc; }
 	}
 }
 
