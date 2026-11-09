@@ -472,4 +472,11 @@ input[type="radio"] {
     break-after: avoid;
     page-break-after: avoid;
   }
+	
+	.kanji-block.kanji-character {
+		color: #eee;
+		
+		&.first { color: #aaa; }
+		&.second { color: #ccc; }
+	}
 }
