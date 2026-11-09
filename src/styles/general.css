@@ -438,10 +438,11 @@ input[type="radio"] {
 		align-items: center;
 		justify-content: center;
 		font-size: 64px;
-		color: #eee;
 		
-		&.first { color: #aaa; }
-		&.second { color: #ccc; }
+		span { opacity: 0.25; }
+		
+		&.first span { opacity: 0.75; }
+		&.second span { opacity: 0.5; }
 	}
 }
 
@@ -472,11 +473,4 @@ input[type="radio"] {
     break-after: avoid;
     page-break-after: avoid;
   }
-	
-	.kanji-block.kanji-character {
-		color: #eee;
-		
-		&.first { color: #aaa; }
-		&.second { color: #ccc; }
-	}
 }

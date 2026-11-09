@@ -301,7 +301,7 @@ function drillRow(w, form, reps = 4, kanjiOnly = false, exampleSentences = true,
       block.classList.add('kanji-character');
       if(i < chars.length) block.classList.add('first');
       if(i < chars.length * 2 && i >= chars.length) block.classList.add('second');
-      block.textContent = chars[i % chars.length];     // wraps around for each copy
+      block.innerHTML = `<span>${chars[i % chars.length]}</span>`;     // wraps around for each copy
     }
     blockContainer.append(block);
   }
